@@ -13,16 +13,16 @@ from os import environ
 
 
 def setup_config():
-    #default connection variables
+    # default connection variables
     conn_vars = {
-        "host" : "localhost",
-        "raw_db" : "srs_raw_db",
-        "agg_db" : "srs_raw_db",
-        "user" : "postgres",
-        "password" : "postgres",
+        "host": "localhost",
+        "raw_db": "srs_raw_db",
+        "agg_db": "srs_raw_db",
+        "user": "postgres",
+        "password": "postgres",
     }
 
-    #setup connection variables if set by user
+    # setup connection variables if set by user
     if "SRS_EXPORTER_HOST" in environ:
         conn_vars['host'] = environ.get('SRS_EXPORTER_HOST')
     if "SRS_EXPORTER_DB_RAW" in environ:
@@ -38,7 +38,7 @@ def setup_config():
 
 
 def usage():
-    #TODO
+    # TODO
     print(sys.argv[0], " -a -h -o filename -v")
 
 
@@ -49,6 +49,7 @@ class Query:
         self.before_date = None
         self.track_id = None
         self.distance = 100
+        self.limit = None
         self.p_lat = None
         self.p_lng = None
         self.track_metadata = False
@@ -71,7 +72,7 @@ class Query:
         return self.track_id
 
     def check(self):
-        if self.is_agg() and (self.is_track_query() or self.track_metadata):
+        if self.is_agg() and (self.is_track_query() or self.track_metadata or self.__is_join_query()):
             return False
 
         return True
@@ -88,6 +89,12 @@ class Query:
     def __is_join_query(self):
         return self.track_metadata
 
+    def __get_limit(self):
+        if self.limit:
+            return " LIMIT {0}".format(self.limit)
+
+        return ""
+
     def __get_join(self):
         if self.__is_join_query():
             table_str = "single_data" if self.new_data else "single_data_old"
@@ -96,12 +103,19 @@ class Query:
         return ""
 
     def __get_selection_fields(self):
-        select = ["position",
-                    "st_x(position) as longitude",
-                    "st_y(position) as latitude",
-                    "ppe",
-                    "{0}.track_id".format(self.__get_raw_table_name()),
-                    "{0}.date".format(self.__get_raw_table_name())]
+        select = ["ppe"]
+
+        if self.is_raw():
+            select += ["position",
+                       "st_x(position) as longitude",
+                       "st_y(position) as latitude",
+                       "{0}.track_id".format(self.__get_raw_table_name()),
+                       "{0}.date".format(self.__get_raw_table_name())]
+        else:
+            select += ["the_geom",
+                       "st_x(the_geom) as longitude",
+                       "st_y(the_geom) as latitude",
+                       "updated_at"]
 
         if self.__is_join_query():
             select.append("track.metadata")
@@ -109,7 +123,7 @@ class Query:
         return select
 
     def __get_where_clauses(self):
-        clauses = []
+        clauses = ["TRUE"]
 
         if self.is_distance_query():
             point_str = "ST_MakePoint({0}, {1}, 4326)".format(self.p_lng, self.p_lat)
@@ -134,15 +148,24 @@ class Query:
         return clauses
 
     def get_query(self):
-        return 'SELECT * FROM single_data LIMIT 10'
+
+        select_fields = ", ".join(self.__get_selection_fields())
+        where_clauses = " AND ".join(self.__get_where_clauses())
+        query_str = "SELECT {0} FROM {1} {2} WHERE {3} {4}" \
+            .format(select_fields, self.get_table(), self.__get_join(), where_clauses, self.__get_limit())
+
+        print(query_str)
+        # 'SELECT * FROM single_data LIMIT 10'
+
+        return query_str
 
 
 def check_variables():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:t:m:ao:Oh",
+        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:t:m:ao:Ol:h",
                                    ["distance=", "latitude=", "longitude=",
                                     "after=", "before=", "track=", "metadata=",
-                                    "aggregate", "output=", "old", "help"])
+                                    "aggregate", "output=", "old", "limit=", "help"])
 
     except getopt.GetoptError as err:
         # print help information and exit:
@@ -185,6 +208,9 @@ def check_variables():
         elif o in ("-O", "--old"):
             q.new_data = False
 
+        elif o in ("-l", "--limit"):
+            q.limit = a
+
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
@@ -198,7 +224,7 @@ def check_variables():
 
 
 def get_data(connection_data, query):
-    conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}'"\
+    conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}'" \
         .format(connection_data['host'],
                 (connection_data['raw_db'] if query.is_raw() else connection_data['agg_db']),
                 connection_data['user'],
@@ -232,20 +258,15 @@ def export_data(cursor, filename='test.csv'):
         for row in cursor:
 
             if row_count == 0:
+                print("{0} results found".format(cursor.rowcount))
                 col_names = [desc[0] for desc in cursor.description]
                 csv_writer.writerow(col_names)
 
             row_count += 1
-            #print("row: %s    %s\n" % (row_count, row))
             csv_writer.writerow(row)
 
-
-# A Python program to to return multiple
-# values from a method using class
-class Test:
-    def __init__(self):
-        self.str = "geeksforgeeks"
-        self.x = 20
+        if row_count == 0:
+                print("No results found!".format(cursor.rowcount))
 
 
 def main():
@@ -257,4 +278,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
