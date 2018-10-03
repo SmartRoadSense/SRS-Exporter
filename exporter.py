@@ -17,7 +17,7 @@ def setup_config():
     conn_vars = {
         "host": "localhost",
         "raw_db": "srs_raw_db",
-        "agg_db": "srs_raw_db",
+        "agg_db": "srs_agg_db",
         "user": "postgres",
         "password": "postgres",
     }
@@ -69,7 +69,7 @@ class Query:
         return True if self.after_date or self.before_date else False
 
     def is_track_query(self):
-        return self.track_id
+        return self.track_id is not None
 
     def check(self):
         if self.is_agg() and (self.is_track_query() or self.track_metadata or self.__is_join_query()):
@@ -162,9 +162,9 @@ class Query:
 
 def check_variables():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:t:m:ao:Ol:h",
+        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:h",
                                    ["distance=", "latitude=", "longitude=",
-                                    "after=", "before=", "track=", "metadata=",
+                                    "after=", "before=", "track=", "metadata",
                                     "aggregate", "output=", "old", "limit=", "help"])
 
     except getopt.GetoptError as err:
@@ -193,7 +193,7 @@ def check_variables():
         elif o in ("-B", "--before"):
             q.before_date = a
 
-        elif o in ("-t", "--track"):
+        elif o in ("-T", "--track"):
             q.track_id = a
 
         elif o in ("-m", "--metadata"):
@@ -215,10 +215,10 @@ def check_variables():
             usage()
             sys.exit()
 
-        if not q.check:
-            print("Wrong parameters!")
-            usage()
-            sys.exit(2)
+    if not q.check():
+        print("Wrong parameters!")
+        usage()
+        sys.exit(2)
 
     return q
 
@@ -251,8 +251,8 @@ def export_data(cursor, filename='test.csv'):
     # each iteration.
     # This loop should run 1000 times, assuming there are at least 1000
     # records in 'my_table'
-    with open(filename, 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    with open(filename, 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
 
         row_count = 0
         for row in cursor:
@@ -266,7 +266,9 @@ def export_data(cursor, filename='test.csv'):
             csv_writer.writerow(row)
 
         if row_count == 0:
-                print("No results found!".format(cursor.rowcount))
+            print("No results found!".format(cursor.rowcount))
+        else:
+            print("Results exported to {0}".format(filename))
 
 
 def main():
