@@ -196,7 +196,6 @@ class Query:
 
         debug.print_debug(query_str)
 
-
         return query_str
 
 
