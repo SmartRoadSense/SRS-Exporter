@@ -2,7 +2,7 @@
 """
 Created on Mon Oct  1 17:31:00 2018
 
-@author: saver
+@author: Saverio Delpriori <saverio.delpriori@uniurb.it>
 """
 
 import csv
@@ -10,6 +10,7 @@ import psycopg2
 import getopt
 import sys
 from os import environ
+import debug
 
 
 def setup_config():
@@ -38,8 +39,44 @@ def setup_config():
 
 
 def usage():
-    # TODO
-    print(sys.argv[0], " -a -h -o filename -v")
+    print("""
+SRS data exporter from single_data (default), single_data_old or current 
+(aggregate db) table. It can perform queries based on geographical distance,
+creation intervals and track_id.
+    
+Usage:
+  {0} [OPTIONS]
+
+Usage examples:
+  {0} -l 10 
+  {0} --longitude 12.92290593 --latitude 43.74830223 -d 1000 
+  {0} -T 56237 --meta 
+  {0} -a -l 10
+  {0} -O -A 2018-04-01 --before 2018-04-02
+
+Options:
+  -d --distance <int>      Distance in meters used for range queries 
+                           (Default:100).
+  -t --latitude <float>    Latitude used for range queries.
+  -g --longitude <float>   Longitude used for range queries.
+  -A --after <datetime>    Selected rows have to be created after this 
+                           specific datetime value.
+  -B --before <datetime>   Selected rows have to be created before this
+                           specific datetime value.
+  -T --track <track_id>    Track id of selected rows.
+  -m --meta                If specified rows will be exported with their
+                           track's metadata (NOTE: cause a JOIN).
+  -o --output <filename>   Filename/path where results have to be written.
+  -a --aggregate           If specified data will be queried from 
+                           the "current" table in the aggregate database.
+  -O --Old                 If specified data will be queried from 
+                           the "single_data_old" table in the raw database.
+  -l --limit <int>         Limit If specified data will be queried from 
+                           the "single_data_old" table in the raw database.
+  --debug                  Print debug information.                              
+  -h --help                Print this help.
+  
+""".format(sys.argv[0]))
 
 
 class Query:
@@ -154,8 +191,8 @@ class Query:
         query_str = "SELECT {0} FROM {1} {2} WHERE {3} {4}" \
             .format(select_fields, self.get_table(), self.__get_join(), where_clauses, self.__get_limit())
 
-        print(query_str)
-        # 'SELECT * FROM single_data LIMIT 10'
+        debug.print_debug(query_str)
+
 
         return query_str
 
@@ -164,8 +201,8 @@ def check_variables():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:h",
                                    ["distance=", "latitude=", "longitude=",
-                                    "after=", "before=", "track=", "metadata",
-                                    "aggregate", "output=", "old", "limit=", "help"])
+                                    "after=", "before=", "track=", "meta",
+                                    "aggregate", "output=", "old", "limit=", "help", "debug"])
 
     except getopt.GetoptError as err:
         # print help information and exit:
@@ -196,7 +233,7 @@ def check_variables():
         elif o in ("-T", "--track"):
             q.track_id = a
 
-        elif o in ("-m", "--metadata"):
+        elif o in ("-m", "--meta"):
             q.track_metadata = True
 
         elif o in ("-a", "--aggregate"):
@@ -210,6 +247,9 @@ def check_variables():
 
         elif o in ("-l", "--limit"):
             q.limit = a
+
+        elif o in "--debug":
+            debug.debug = True
 
         elif o in ("-h", "--help"):
             usage()
@@ -231,7 +271,7 @@ def get_data(connection_data, query):
                 connection_data['password'])
 
     # print the connection string we will use to connect
-    print("Connecting to database\n	-> {0}".format([conn_string]))
+    debug.print_debug("Connecting to database\n	-> {0}".format([conn_string]))
 
     # get a connection, if a connect cannot be made an exception will be raised here
     conn = psycopg2.connect(conn_string)
@@ -258,7 +298,7 @@ def export_data(cursor, filename='test.csv'):
         for row in cursor:
 
             if row_count == 0:
-                print("{0} results found".format(cursor.rowcount))
+                debug.print_debug("{0} results found".format(cursor.rowcount))
                 col_names = [desc[0] for desc in cursor.description]
                 csv_writer.writerow(col_names)
 
@@ -268,7 +308,7 @@ def export_data(cursor, filename='test.csv'):
         if row_count == 0:
             print("No results found!".format(cursor.rowcount))
         else:
-            print("Results exported to {0}".format(filename))
+            print("{0} results exported to {1}".format(row_count, filename))
 
 
 def main():
