@@ -16,7 +16,8 @@ import debug
 def setup_config():
     # default connection variables
     conn_vars = {
-        "host": "localhost",
+        "host_raw": "localhost",
+        "host_agg": "localhost",
         "raw_db": "srs_raw_db",
         "agg_db": "srs_agg_db",
         "user": "postgres",
@@ -24,8 +25,10 @@ def setup_config():
     }
 
     # setup connection variables if set by user
-    if "SRS_EXPORTER_HOST" in environ:
-        conn_vars['host'] = environ.get('SRS_EXPORTER_HOST')
+    if "SRS_EXPORTER_RAW_HOST" in environ:
+        conn_vars['host_raw'] = environ.get('SRS_EXPORTER_RAW_HOST')
+    if "SRS_EXPORTER_AGG_HOST" in environ:
+        conn_vars['host_agg'] = environ.get('SRS_EXPORTER_AGG_HOST')
     if "SRS_EXPORTER_DB_RAW" in environ:
         conn_vars['raw_db'] = environ.get('SRS_EXPORTER_DB_RAW')
     if "SRS_EXPORTER_DB_AGG" in environ:
@@ -265,7 +268,7 @@ def check_variables():
 
 def get_data(connection_data, query):
     conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}'" \
-        .format(connection_data['host'],
+        .format(connection_data['host_raw'] if query.is_raw() else connection_data['host_agg'],
                 (connection_data['raw_db'] if query.is_raw() else connection_data['agg_db']),
                 connection_data['user'],
                 connection_data['password'])
