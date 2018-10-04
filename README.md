@@ -48,4 +48,13 @@ Options:
   -h --help                Print this help.
 ```
 
-Please consider using this script within a Docker container. 
+
+
+
+## Within Docker
+Please consider using this script within a Docker container (see: Docker [smartroadsense/dataexporter](https://hub.docker.com/r/smartroadsense/dataexporter/) image)
+
+When used within the Docker container linked above please note that the script will be in the `/tmp/` directory  and should be executed in this way in order to output results in the shared `/data` docker volume:
+```
+$ python exporter.py -o /data/data.csv [OTHER OPTIONS]
+```
