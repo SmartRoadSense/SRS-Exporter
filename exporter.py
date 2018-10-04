@@ -76,7 +76,9 @@ Options:
                            the "single_data_old" table in the raw database.
   -l --limit <int>         Limit If specified data will be queried from 
                            the "single_data_old" table in the raw database.
-  --debug                  Print debug information.                              
+  --debug                  Print debug information.             
+  -c --count               Count rows instead of printing them (-o 
+                           will be ignored).                 
   -h --help                Print this help.
   
 """.format(sys.argv[0]))
@@ -94,6 +96,7 @@ class Query:
         self.p_lng = None
         self.track_metadata = False
         self.raw_db = True
+        self.count = False
         self.new_data = True
 
     def is_raw(self):
@@ -101,6 +104,9 @@ class Query:
 
     def is_agg(self):
         return not self.raw_db
+
+    def is_count(self):
+        return self.count
 
     def is_distance_query(self):
         return True if self.p_lat and self.p_lng else False
@@ -143,6 +149,10 @@ class Query:
         return ""
 
     def __get_selection_fields(self):
+
+        if self.is_count():
+            return ['count(*) as count']
+
         select = ["ppe"]
 
         if self.is_raw():
@@ -201,10 +211,10 @@ class Query:
 
 def check_variables():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:h",
+        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:hc",
                                    ["distance=", "latitude=", "longitude=",
                                     "after=", "before=", "track=", "meta",
-                                    "aggregate", "output=", "old", "limit=", "help", "debug"])
+                                    "aggregate", "output=", "old", "limit=", "help", "debug", "count"])
 
     except getopt.GetoptError as err:
         # print help information and exit:
@@ -250,6 +260,9 @@ def check_variables():
         elif o in ("-l", "--limit"):
             q.limit = a
 
+        elif o in ("-c", "--count"):
+            q.count = True
+
         elif o in "--debug":
             debug.debug = True
 
@@ -287,12 +300,13 @@ def get_data(connection_data, query):
     return cursor
 
 
-def export_data(cursor, filename='test.csv'):
-    # Because cursor objects are iterable we can just call 'for - in' on
-    # the cursor object and the cursor will automatically advance itself
-    # each iteration.
-    # This loop should run 1000 times, assuming there are at least 1000
-    # records in 'my_table'
+def export_data(cursor, filename='test.csv', stdout_only=False):
+
+    if stdout_only:
+        result = cursor.fetchone()
+        print("{0} rows returned".format(result[0]))  # print count column
+        return
+
     with open(filename, 'w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
 
@@ -317,7 +331,7 @@ def main():
     conn_vars = setup_config()
     query = check_variables()
     cursor = get_data(conn_vars, query)
-    export_data(cursor, filename=query.output)
+    export_data(cursor, filename=query.output, stdout_only=query.is_count())
 
 
 if __name__ == "__main__":

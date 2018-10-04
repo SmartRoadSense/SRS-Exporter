@@ -43,6 +43,9 @@ assert py.exe exporter.py -l 10 -m -o test.csv
 echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv\n"
 assert py.exe exporter.py -T 16 -m -o test_track.csv
 
+echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c\n"
+assert py.exe exporter.py -T 16 -m -o test_track.csv -c
+
 # Old raw data table
 echo -e "\n\n\npy.exe exporter.py -O -A 2018-04-01 --before 2018-04-02\n"
 assert py.exe exporter.py -O -A 2018-04-01 --before 2018-04-02
