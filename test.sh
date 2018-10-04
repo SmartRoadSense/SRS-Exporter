@@ -46,6 +46,13 @@ assert py.exe exporter.py -T 16 -m -o test_track.csv
 echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c\n"
 assert py.exe exporter.py -T 16 -m -o test_track.csv -c
 
+echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c -w \"track.metadata::json->>'sdk' = 'LollipopMr1'\"\n"
+assert py.exe exporter.py -T 16 -m -o test_track.csv -w "track.metadata::json->>'sdk' = 'LollipopMr1'"
+
+echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c -s \"track.metadata::json->>'deviceManufacturer' as manufacturer\"\n"
+assert py.exe exporter.py -T 16 -m -o test_track.csv -s "track.metadata::json->>'deviceManufacturer' as manufacturer"
+
+
 # Old raw data table
 echo -e "\n\n\npy.exe exporter.py -O -A 2018-04-01 --before 2018-04-02\n"
 assert py.exe exporter.py -O -A 2018-04-01 --before 2018-04-02

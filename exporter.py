@@ -78,7 +78,11 @@ Options:
                            the "single_data_old" table in the raw database.
   --debug                  Print debug information.             
   -c --count               Count rows instead of printing them (-o 
-                           will be ignored).                 
+                           will be ignored).
+  -s --select <sql select> Append free-text custom select field at the end 
+                           of the select field list                            
+  -w --where <sql clause>  Append free-text custom where clause at the end
+                           of the clause list.                                    
   -h --help                Print this help.
   
 """.format(sys.argv[0]))
@@ -97,6 +101,8 @@ class Query:
         self.track_metadata = False
         self.raw_db = True
         self.count = False
+        self.select = None
+        self.where = None
         self.new_data = True
 
     def is_raw(self):
@@ -170,6 +176,9 @@ class Query:
         if self.__is_join_query():
             select.append("track.metadata")
 
+        if self.select:
+            select.append(self.select)
+
         return select
 
     def __get_where_clauses(self):
@@ -195,6 +204,9 @@ class Query:
             before_date_str = "{0} < '{1}'".format(date_str, self.before_date)
             clauses.append(before_date_str)
 
+        if self.where:
+            clauses.append(self.where)
+
         return clauses
 
     def get_query(self):
@@ -211,10 +223,11 @@ class Query:
 
 def check_variables():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:hc",
+        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:s:w:hc",
                                    ["distance=", "latitude=", "longitude=",
                                     "after=", "before=", "track=", "meta",
-                                    "aggregate", "output=", "old", "limit=", "help", "debug", "count"])
+                                    "aggregate", "output=", "old", "limit=",
+                                    "select=", "where=", "help", "debug", "count"])
 
     except getopt.GetoptError as err:
         # print help information and exit:
@@ -259,6 +272,12 @@ def check_variables():
 
         elif o in ("-l", "--limit"):
             q.limit = a
+
+        elif o in ("-s", "--select"):
+            q.select = a
+
+        elif o in ("-w", "--where"):
+            q.where = a
 
         elif o in ("-c", "--count"):
             q.count = True
