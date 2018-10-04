@@ -82,7 +82,8 @@ Options:
   -s --select <sql select> Append free-text custom select field at the end 
                            of the select field list                            
   -w --where <sql clause>  Append free-text custom where clause at the end
-                           of the clause list.                                    
+                           of the clause list.        
+  -q --query               Just print the query text on the stdout.                                      
   -h --help                Print this help.
   
 """.format(sys.argv[0]))
@@ -101,6 +102,7 @@ class Query:
         self.track_metadata = False
         self.raw_db = True
         self.count = False
+        self.print_only = False
         self.select = None
         self.where = None
         self.new_data = True
@@ -113,6 +115,9 @@ class Query:
 
     def is_count(self):
         return self.count
+
+    def is_print_only_query(self):
+        return self.print_only
 
     def is_distance_query(self):
         return True if self.p_lat and self.p_lng else False
@@ -223,11 +228,11 @@ class Query:
 
 def check_variables():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:s:w:hc",
+        opts, args = getopt.getopt(sys.argv[1:], "d:t:g:A:B:T:mao:Ol:s:w:hqc",
                                    ["distance=", "latitude=", "longitude=",
                                     "after=", "before=", "track=", "meta",
                                     "aggregate", "output=", "old", "limit=",
-                                    "select=", "where=", "help", "debug", "count"])
+                                    "select=", "where=", "help", "query", "debug", "count"])
 
     except getopt.GetoptError as err:
         # print help information and exit:
@@ -281,6 +286,9 @@ def check_variables():
 
         elif o in ("-c", "--count"):
             q.count = True
+
+        elif o in ("-q", "--query"):
+            q.print_only = True
 
         elif o in "--debug":
             debug.debug = True
@@ -350,7 +358,10 @@ def main():
     conn_vars = setup_config()
     query = check_variables()
     cursor = get_data(conn_vars, query)
-    export_data(cursor, filename=query.output, stdout_only=query.is_count())
+    if query.is_print_only_query():
+        print(query.get_query())
+    else:
+        export_data(cursor, filename=query.output, stdout_only=query.is_count())
 
 
 if __name__ == "__main__":

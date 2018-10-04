@@ -45,12 +45,13 @@ assert py.exe exporter.py -T 16 -m -o test_track.csv
 
 echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c\n"
 assert py.exe exporter.py -T 16 -m -o test_track.csv -c
-
 echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c -w \"track.metadata::json->>'sdk' = 'LollipopMr1'\"\n"
 assert py.exe exporter.py -T 16 -m -o test_track.csv -w "track.metadata::json->>'sdk' = 'LollipopMr1'"
-
 echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c -s \"track.metadata::json->>'deviceManufacturer' as manufacturer\"\n"
 assert py.exe exporter.py -T 16 -m -o test_track.csv -s "track.metadata::json->>'deviceManufacturer' as manufacturer"
+
+echo -e "\n\n\npy.exe exporter.py -T 16 -m -o test_track.csv -c -s \"track.metadata::json->>'deviceManufacturer' as manufacturer\" -w \"track.metadata::json->>'sdk' = 'LollipopMr1'\" --query\n"
+assert py.exe exporter.py -T 16 -m -o test_track.csv -s "track.metadata::json->>'deviceManufacturer' as manufacturer" -w "track.metadata::json->>'sdk' = 'LollipopMr1'" --query
 
 
 # Old raw data table
