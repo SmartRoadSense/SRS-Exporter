@@ -22,6 +22,7 @@ def setup_config():
         "agg_db": "srs_agg_db",
         "user": "postgres",
         "password": "postgres",
+        "port": "5432"
     }
 
     # setup connection variables if set by user
@@ -37,6 +38,8 @@ def setup_config():
         conn_vars['user'] = environ.get('SRS_EXPORTER_USER')
     if "SRS_EXPORTER_PASS" in environ:
         conn_vars['password'] = environ.get('SRS_EXPORTER_PASS')
+    if "SRS_EXPORTER_PORT" in environ:
+        conn_vars['port'] = environ.get('SRS_EXPORTER_PORT')
 
     return conn_vars
 
@@ -306,11 +309,12 @@ def check_variables():
 
 
 def get_data(connection_data, query):
-    conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}'" \
+    conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}' port='{4}'" \
         .format(connection_data['host_raw'] if query.is_raw() else connection_data['host_agg'],
                 (connection_data['raw_db'] if query.is_raw() else connection_data['agg_db']),
                 connection_data['user'],
-                connection_data['password'])
+                connection_data['password'],
+                connection_data['port'])
 
     # print the connection string we will use to connect
     debug.print_debug("Connecting to database\n	-> {0}".format([conn_string]))

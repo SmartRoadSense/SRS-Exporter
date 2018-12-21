@@ -11,6 +11,7 @@ It requires the following environmental variables set:
 3. __SRS_EXPORTER_DB_AGG__ (default is _srs_agg_db_)
 4. __SRS_EXPORTER_USER__ (default is _postgres_)
 5. __SRS_EXPORTER_PASS__ (default is _postgres_)
+6. __SRS_EXPORTER_PORT__ (default is _5432_)
  
 The script's usage is quite straight forward:
 
